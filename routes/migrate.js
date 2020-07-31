@@ -5,6 +5,15 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 var path = require('path');
 var bd=require('./bd');
 var bdeltiempo=require('./bd_eltiempo');
+var Client = require('ssh2-sftp-client');
+
+const config = {
+  host: '127.0.0.1',
+  port:'22',
+  username: 'berneytest',
+  password: '123456789'
+};
+const sftp = new Client('smtp-berney');
 
 const headerUserFile=[
   {id:"uid",title:"user_id"},
@@ -74,9 +83,25 @@ router.get('/generate-csv/:termid',function(req,res,next){
       
       const csvUser=generateCsv('userFile-'+new Date().getTime()+'.csv',info,headerUserFile);
       const csvTerm=generateCsv('TermFile-'+new Date().getTime()+'.csv',info,headerTermFile);
-
+      sentSFTP(csvUser.name);
+      sentSFTP(csvTerm.name);
       res.send({msg:[csvUser,csvTerm]})
   });
 })
+
+function sentSFTP(name){
+  let data = fs.createReadStream('csv/'+name);
+  let remote = '/'+name;
+  sftp.connect(config)
+  .then(() => {
+    return sftp.put(data, remote);
+  })
+  .then(() => {
+    return sftp.end();
+  })
+  .catch(err => {
+    console.error(err.message);
+  });
+};
 
 module.exports = router;
