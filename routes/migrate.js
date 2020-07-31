@@ -50,19 +50,19 @@ function generateCsv(namecsv,datacsv,headercsv){
   const data = (datacsv)?datacsv:[];
   csvWriter
     .writeRecords(data)
-    .then(()=> console.log('The CSV file was written successfully'));
-  const registro={
-    date_in: new Date(),
-    name_file:namecsv,
-    sent_ftp:false
-  }
-  bdeltiempo.query('insert into migrate_audit set ?',registro, (error,resultado) => {
-    if (error) {
-      console.log(error);
-      return;
-    }	  
-  });
-  return {name:namecsv}
+    .then(()=>{return true})
+    const registro={
+      date_in: new Date(),
+      name_file:namecsv,
+      sent_ftp:false
+    }
+    bdeltiempo.query('insert into migrate_audit set ?',registro, (error,resultado) => {
+      if (error) {
+        console.log(error);
+        return;
+      }	  
+    });
+    return {name:namecsv}
 }
 
 router.get('/generate-csv/:termid',function(req,res,next){
@@ -85,23 +85,49 @@ router.get('/generate-csv/:termid',function(req,res,next){
       const csvTerm=generateCsv('TermFile-'+new Date().getTime()+'.csv',info,headerTermFile);
       sentSFTP(csvUser.name);
       sentSFTP(csvTerm.name);
-      res.send({msg:[csvUser,csvTerm]})
+      
+      res.send({
+        msg:"Archivos csv transferidos",
+        file:[
+          (csvUser.name)?csvUser:'Error a crear archivo de user_file',
+          (csvTerm.name)?csvTerm:'Error a crear archivo de term_file',
+        ]}
+      )
   });
 })
 
 function sentSFTP(name){
   let data = fs.createReadStream('csv/'+name);
   let remote = '/'+name;
+  let status;
   sftp.connect(config)
   .then(() => {
     return sftp.put(data, remote);
   })
   .then(() => {
-    return sftp.end();
+    const registro={
+      sent_ftp:true
+    }
+    bdeltiempo.query('UPDATE migrate_audit SET ? WHERE ?',[registro,{name_file:name}], (error,resultado) => {
+      if (error) {
+        console.log(error);
+        return;
+      }	  
+    });
+    sftp.end();
+    status={sftp:true}
+    console.log(status)
+    return status
   })
   .catch(err => {
-    console.error(err.message);
+    status={
+      msg:err,
+      sftp:false
+    };
+    console.log(status)
+    return status
   });
+  return status;
 };
 
 module.exports = router;
