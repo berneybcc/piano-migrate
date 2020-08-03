@@ -66,7 +66,7 @@ function generateCsv(namecsv,datacsv,headercsv){
 }
 
 router.get('/generate-csv/:termid',function(req,res,next){
-  bd.query('select uid,email,first_name,last_name from users limit 100', function(error,filas){
+  bd.query('select uid,email,first_name,last_name from users limit 100', async function(error,filas){
       if (error) {            
           console.log('error en el listado');
           return res.send({msg:"error consulta"});
@@ -83,9 +83,12 @@ router.get('/generate-csv/:termid',function(req,res,next){
       
       const csvUser=generateCsv('userFile-'+new Date().getTime()+'.csv',info,headerUserFile);
       const csvTerm=generateCsv('TermFile-'+new Date().getTime()+'.csv',info,headerTermFile);
-      sentSFTP(csvUser.name);
-      sentSFTP(csvTerm.name);
-      
+      const sftpUser= await sentSFTP(csvUser.name);
+      // res.send(sftpUser);
+      const sftpTerm=await sentSFTP(csvTerm.name);
+      csvUser.sftp=sftpUser.sftp;
+      csvTerm.sftp=sftpTerm.sftp;
+
       res.send({
         msg:"Archivos csv transferidos",
         file:[
@@ -100,7 +103,7 @@ function sentSFTP(name){
   let data = fs.createReadStream('csv/'+name);
   let remote = '/'+name;
   let status;
-  sftp.connect(config)
+  return new Promise((fulfill,error)=>sftp.connect(config)
   .then(() => {
     return sftp.put(data, remote);
   })
@@ -117,17 +120,18 @@ function sentSFTP(name){
     sftp.end();
     status={sftp:true}
     console.log(status)
-    return status
+    fulfill(status)
   })
   .catch(err => {
     status={
       msg:err,
       sftp:false
     };
+    console.log("++++++++++++  error conexion  ++++++++++++++++++++")
     console.log(status)
-    return status
-  });
-  return status;
+    fulfill(status);
+  }));
+  // return status;
 };
 
 module.exports = router;
