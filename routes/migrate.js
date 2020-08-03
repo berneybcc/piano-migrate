@@ -6,13 +6,8 @@ var path = require('path');
 var bd=require('./bd');
 var bdeltiempo=require('./bd_eltiempo');
 var Client = require('ssh2-sftp-client');
+const config = require('../config/sftp.config.json');
 
-const config = {
-  host: '127.0.0.1',
-  port:'22',
-  username: 'berneytest',
-  password: '123456789'
-};
 const sftp = new Client('smtp-berney');
 
 const headerUserFile=[
@@ -66,7 +61,7 @@ function generateCsv(namecsv,datacsv,headercsv){
 }
 
 router.get('/generate-csv/:termid',function(req,res,next){
-  bd.query('select uid,email,first_name,last_name from users limit 100', async function(error,filas){
+  bd.query('select uid,email,first_name,last_name from users', async function(error,filas){
       if (error) {            
           console.log('error en el listado');
           return res.send({msg:"error consulta"});
