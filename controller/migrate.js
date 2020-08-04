@@ -4,7 +4,7 @@ var path = require('path');
 var bd=require('../bd/bd_casper');
 var bdeltiempo=require('../bd/bd_eltiempo');
 var Client = require('ssh2-sftp-client');
-const config = require('../config/sftp.config.json');
+var { HOST_SFTP,USER_SFTP,PASS_SFTP,PORT_SFTP } = require('../config');
 
 const sftp = new Client('smtp-berney');
 
@@ -118,7 +118,12 @@ function sentSFTP(name){
     let data = fs.createReadStream('csv/'+name);
     let remote = '/'+name;
     let status;
-    return new Promise((fulfill,error)=>sftp.connect(config)
+    return new Promise((fulfill,error)=>sftp.connect({
+        host: HOST_SFTP,
+        port:PORT_SFTP,
+        username: USER_SFTP,
+        password: PASS_SFTP
+    })
     .then(() => {
       return sftp.put(data, remote);
     })

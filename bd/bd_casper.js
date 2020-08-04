@@ -1,5 +1,5 @@
 var mysql=require('mysql');
-var { HOST_DB,USER_DB,PASS_DB,PORT_DB } = require('../config/database');
+var { HOST_DB,USER_DB,PASS_DB,PORT_DB } = require('../config');
 
 var conexion=mysql.createConnection({
     host:HOST_DB,
